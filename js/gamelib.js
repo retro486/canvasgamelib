@@ -6,6 +6,7 @@ var ___game_sprite_promises = [];
 var __game;
 
 function Game() {
+  this.fps = 10; // allows for locking framerate since ~60fps isn't always what you want. Or ever...
   this.static_scenes = [];
   this.animated_scenes = [];
 
@@ -51,7 +52,7 @@ function Game() {
       }
 
       screen.parentNode.replaceChild(__game.buffer, screen);
-    }, 1000 / 5); // 5 fps
+    }, 1000 / __game.fps);
   }
 
   this.start = function() {
@@ -130,19 +131,23 @@ function AnimatedScene(width, height, sprites, callback) {
   scene.sprites = sprites;
   scene.frame_count = 0;
   scene.current_i = 0;
+  scene.play = true;
 
   scene.update = function() {
+    this.beforeUpdate();
+
     // bother updating when hidden? I dunno... maybe... for now... no...?
     if(this.hidden) return;
 
-    this.beforeUpdate();
-
-    this.current_i++;
-    if(this.current_i >= this.sprites.length) {
-      this.current_i = 0;
-      if(callback != undefined) callback();
+    // Ensures sprite maintains its last known state
+    if(this.play) {
+      this.current_i++;
+      if(this.current_i >= this.sprites.length) {
+        this.current_i = 0;
+        if(callback != undefined) callback();
+      }
     }
-
+    
     this.afterUpdate();
   };
 
@@ -168,6 +173,14 @@ function AnimatedScene(width, height, sprites, callback) {
     this.ctx.scale(horiz, vert);
     this.ctx.drawImage(sp.img, sp.x, sp.y, sp.w, sp.h, x, y, sp.sw, sp.sh);
     this.ctx.restore();
+  }
+
+  scene.pause = function() {
+    this.play = false;
+  }
+
+  scene.resume = function() {
+    this.play = true;
   }
 
   scene.afterUpdate = function() {}; // for custom actions without killing default behavior
@@ -240,7 +253,29 @@ function SymmetricalSpritesheet(filename, rows, cols, cell_width, cell_height, p
 }
 
 // For spritesheets that contain multiple differently dimensioned sprites (like environment sheets)
-// Set up for this will of course be horrible and messy - ideally spritesheets will be a little consistent...
-function ManualSpritesheet() {
+// Set up for this will of course be horrible and messy - ideally spritesheets will be at least a little consistent...
+function ManualSpritesheet(filename) {
+  this.sprites = {};
+  this.img = new Image();
+  this.img.src = filename;
 
+  this.markSprite = function(name, x, y, w, h) {
+    this.sprites[name] = {
+      x: x,
+      y: y,
+      w: w,
+      h: h,
+      sw: w,
+      sh: h,
+      img: this.img,
+    };
+  };
+
+  this.then = function() {
+    var deferred = Q.defer();
+    this.img.onload = function() {
+      deferred.resolve();
+    }
+    return deferred.promise;
+  };
 }
