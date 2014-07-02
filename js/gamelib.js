@@ -1,62 +1,72 @@
 // Requires Q for async management
 // http://documentup.com/kriskowal/q/
 
-// function Game() {
-//   var init = function(canvas_id) {
-//     this.canvas = document.getElementById(canvas_id);
-//     this.ctx = this.canvas.getContext('2d');
-//     this.width = this.canvas.width;
-//     this.height = this.canvas.height;
-//     this.init_done = true;
-//     this.show_dialog = false;
-//
-//     return this;
-//   };
-//
-//   var refresh = function() {
-//     if(!this.init_done) this.init();
-//
-//     for(var i in this.scenes) {
-//
-//     }
-//
-//     return this;
-//   };
-//
-//   var setDialog = function(text) {
-//     if(!this.init_done) this.init();
-//
-//     var el = this.ctx;
-//
-//     // TODO draw a border around text and a background
-//
-//     el.font = 'normal small-caps bold 12pt serif';
-//     var grd = this.ctx.createLinearGradient(0,0,170,0);
-//     grd.addColorStop(0,"#663300");
-//     grd.addColorStop(0.3,"#FF9900");
-//     el.fillStyle = grd;
-//     // el.shadowColor = '#996600';
-//     // el.shadowBlur = '0';
-//     // el.shadowOffsetX = '0';
-//     // el.shadowOffsetY = '0';
-//     el.fillText(message, 25, this.height - 25);
-//
-//     this.show_dialog = true;
-//
-//     return this;
-//   };
-//
-//   var clearDialog = function() {
-//     this.show_dialog = false;
-//   };
-//
-//   this.scenes = [];
-// }
+// Temporary global
+var ___game_sprite_promises = [];
+var __game;
+
+function Game() {
+  this.static_scenes = [];
+  this.animated_scenes = [];
+
+  this.buffer = document.createElement('canvas');
+  this.buffer_ctx = this.buffer.getContext('2d');
+  this.buffer.width = 640;
+  this.buffer.height = 480;
+  this.buffer.id = 'canvas_id';
+
+  this.addStaticScene = function(scene) {
+    scene.setCanvas(this.buffer);
+    this.static_scenes.push(scene);
+  };
+
+  this.addAnimatedScene = function(scene) {
+    scene.setCanvas(this.buffer);
+    this.animated_scenes.push(scene);
+  };
+
+  this.anim = function() {
+    // trick to smooth out requestanimationframe being too damned fast
+    // http://creativejs.com/resources/requestanimationframe/
+    setTimeout(function() {
+      window.requestAnimationFrame(__game.anim);
+
+      var screen = document.getElementById('canvas_id');
+
+      for(var i=0; i < __game.static_scenes.length; i++) {
+        __game.static_scenes[i].update();
+      }
+      for(var i=0; i < __game.animated_scenes.length; i++) {
+        __game.animated_scenes[i].update();
+      }
+
+      __game.buffer_ctx.clearRect(0,0,__game.buffer.width,__game.buffer.height);
+
+      // static scenes should be drawn first
+      for(var i=0; i < __game.static_scenes.length; i++) {
+        __game.static_scenes[i].draw();
+      }
+      for(var i=0; i < __game.animated_scenes.length; i++) {
+        __game.animated_scenes[i].draw();
+      }
+
+      screen.parentNode.replaceChild(__game.buffer, screen);
+    }, 1000 / 5); // 5 fps
+  }
+
+  this.start = function() {
+    var game = this;
+    Q.all(___game_sprite_promises).then(function() {
+      console.debug('Game started.');
+      window.requestAnimationFrame(game.anim);
+    });
+  }
+
+  __game = this;
+}
 
 // Manages assets on a single layer; i.e., background elements, player, individual enemies, and collision between scenes
-function Scene(canvas, width, height) {
-  this.canvas = canvas;
-  this.ctx = canvas.getContext('2d');
+function Scene(width, height) {
   this.w = width;
   this.h = height;
   this.x = 0;
@@ -65,6 +75,11 @@ function Scene(canvas, width, height) {
   this.invert_h = false;
   this.invert_v = false;
   this.sprites = [];
+
+  this.setCanvas = function(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+  }
 
   this.update = function() {
     // actions to take just before each draw frame
@@ -110,8 +125,8 @@ function Scene(canvas, width, height) {
 
 // Similar to a normal scene but animates through the sprite array instead of rendering all of them at once
 // callback runs after the animation is finished; only executes if loop is false
-function AnimatedScene(canvas, width, height, sprites, callback) {
-  var scene = new Scene(canvas, width, height);
+function AnimatedScene(width, height, sprites, callback) {
+  var scene = new Scene(width, height);
   scene.sprites = sprites;
   scene.frame_count = 0;
   scene.current_i = 0;
@@ -179,6 +194,8 @@ function StaticSprite(filename, width, height) {
     }
     return deferred.promise;
   };
+
+  ___game_sprite_promises.push(this.then());
 }
 
 // For spritesheets that contain all same dimensioned sprites (like character sheets)
@@ -218,9 +235,12 @@ function SymmetricalSpritesheet(filename, rows, cols, cell_width, cell_height, p
     }
     return deferred.promise;
   };
+
+  ___game_sprite_promises.push(this.then());
 }
 
 // For spritesheets that contain multiple differently dimensioned sprites (like environment sheets)
+// Set up for this will of course be horrible and messy - ideally spritesheets will be a little consistent...
 function ManualSpritesheet() {
 
 }
