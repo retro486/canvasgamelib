@@ -1,3 +1,6 @@
+// Requires Q for async management
+// http://documentup.com/kriskowal/q/
+
 // function Game() {
 //   var init = function(canvas_id) {
 //     this.canvas = document.getElementById(canvas_id);
@@ -59,6 +62,8 @@ function Scene(canvas, width, height) {
   this.x = 0;
   this.y = 0;
   this.hidden = false;
+  this.invert_h = false;
+  this.invert_v = false;
   this.sprites = [];
 
   this.update = function() {
@@ -70,7 +75,14 @@ function Scene(canvas, width, height) {
     // write sprites and such to their appropriate locations on this.ctx
     for(var i = 0; i < this.sprites.length; i++) {
       var sp = this.sprites[i];
-      this.ctx.drawImage(sp.img, sp.x, sp.y, sp.w, sp.h, scene.x, scene.y, sp.w, sp.h);
+      this.ctx.save();
+      var vert = 1;
+      var horiz = 1;
+      if(this.invert_h) vert = -1;
+      if(this.invert_v) horiz = -1;
+      this.ctx.scale(horiz, vert);
+      this.ctx.drawImage(sp.img, sp.x, sp.y, sp.w, sp.h, this.x, this.y, sp.sw, sp.sh);
+      this.ctx.restore();
     }
   };
 
@@ -124,7 +136,23 @@ function AnimatedScene(canvas, width, height, sprites, callback) {
 
     // draw only the first sprite
     var sp = this.sprites[this.current_i];
-    this.ctx.drawImage(sp.img, sp.x, sp.y, sp.w, sp.h, this.x, this.y, sp.w, sp.h);
+
+    this.ctx.save();
+    var vert = 1;
+    var horiz = 1;
+    var x = this.x;
+    var y = this.y;
+    if(this.invert_h) {
+      horiz = -1;
+      x = (x * -1) - sp.w;
+    }
+    if(this.invert_v) {
+      vert = -1;
+      y = (y * -1) - sp.h;
+    }
+    this.ctx.scale(horiz, vert);
+    this.ctx.drawImage(sp.img, sp.x, sp.y, sp.w, sp.h, x, y, sp.sw, sp.sh);
+    this.ctx.restore();
   }
 
   scene.afterUpdate = function() {}; // for custom actions without killing default behavior
@@ -133,17 +161,34 @@ function AnimatedScene(canvas, width, height, sprites, callback) {
   return scene;
 }
 
+// Just a single  static sprite for use with scenes
+function StaticSprite(filename, width, height) {
+  this.img = new Image();
+  this.img.src = filename;
+  this.x = 0;
+  this.y = 0;
+  this.w = width;
+  this.h = height;
+  this.sw = width;
+  this.sh = height;
+
+  this.then = function(callback) {
+    var deferred = Q.defer();
+    this.img.onload = function() {
+      deferred.resolve();
+    }
+    return deferred.promise;
+  };
+}
+
 // For spritesheets that contain all same dimensioned sprites (like character sheets)
 // linear sprite names are prefix_# where # is the row #
 // callback is called once the file has been loaded.
-function SymmetricalSpritesheet(filename, rows, cols, cell_width, cell_height, prefixes, callback, style) {
+function SymmetricalSpritesheet(filename, rows, cols, cell_width, cell_height, prefixes, style) {
   this.sprites = {};
 
-  var img = new Image();
-  img.src = filename;
-  img.onload = function() {
-    callback();
-  };
+  this.img = new Image();
+  this.img.src = filename;
 
   if(style == 'linear') {
     // sprites are all in a row. each row has a different unrelated sprite (i.e., classes, different monsters, etc).
@@ -155,7 +200,9 @@ function SymmetricalSpritesheet(filename, rows, cols, cell_width, cell_height, p
           y: cell_height * row,
           w: cell_width,
           h: cell_height,
-          img: img,
+          sw: cell_width,
+          sh: cell_height,
+          img: this.img,
         };
       }
     }
@@ -163,6 +210,14 @@ function SymmetricalSpritesheet(filename, rows, cols, cell_width, cell_height, p
   else if(style == 'square') {
     // sprites are positioned in a square, oriented as they would face in relation to an 8-way joystick and all sprites are related (i.e., directional)
   }
+
+  this.then = function(callback) {
+    var deferred = Q.defer();
+    this.img.onload = function() {
+      deferred.resolve();
+    }
+    return deferred.promise;
+  };
 }
 
 // For spritesheets that contain multiple differently dimensioned sprites (like environment sheets)

@@ -1,12 +1,12 @@
 // Load spritesheets
+var cauldron_sprite = new StaticSprite('images/boil.gif', 32, 32);
+cauldron_sprite.sw = 64;
+cauldron_sprite.sh = 64;
+
 var goblin = new SymmetricalSpritesheet('images/goblinsword_0.png', 5, 11, 65, 64, [
   'walk1', 'walk2', 'walk3', 'walk4', 'walk5', 'walk6',
   'attack1', 'attack2', 'attack3', 'attack4'
-], function() {
-  // TODO send signal to some async trigger that will launch animatons...
-  // this will have to come after game core init so we can reference it here
-  // window.requestAnimationFrame(anim);
-}, 'linear');
+], 'linear');
 
 var player = new SymmetricalSpritesheet('images/dwarves.png', 12, 20, 100, 80, [
   'idle1', 'idle2', 'idle3', 'idle4',
@@ -14,10 +14,16 @@ var player = new SymmetricalSpritesheet('images/dwarves.png', 12, 20, 100, 80, [
   'attack1', 'attack2', 'attack3', 'attack4',
   'death1', 'death2',
   'net1', 'net2', 'net3', 'net4'
-], function() {
-  // this will have to come after game core init so we can reference it here
+], 'linear');
+
+// Wait for all the sprites to load then start animation.
+Q.all([
+  cauldron_sprite.then(),
+  goblin.then(),
+  player.then()
+]).then(function() {
   window.requestAnimationFrame(anim);
-}, 'linear');
+});
 
 // LINES TO PUT IN GAME CORE
 var buffer = document.createElement('canvas');
@@ -39,14 +45,20 @@ var anim = function() {
     player_walk_scene.update();
     goblin_walk_south_scene.update();
     goblin_attack_west_scene.update();
+    goblin_attack_east_scene.update();
 
     buffer_ctx.clearRect(0,0,buffer.width,buffer.height);
 
-    player_attack_scene.draw();
+    // static scenes should be drawn first
+    cauldron_scene.draw();
+
+    // now animations - order matters; it's layering
     player_idle_scene.draw();
     player_walk_scene.draw();
+    player_attack_scene.draw();
     goblin_walk_south_scene.draw();
     goblin_attack_west_scene.draw();
+    goblin_attack_east_scene.draw();
 
     screen.parentNode.replaceChild(buffer, screen);
   }, 1000 / 5); // 5 fps
@@ -107,3 +119,13 @@ for(var i = 1; i < 5; i++) {
 var goblin_attack_west_scene = AnimatedScene(buffer, 65, 64, goblin_attack_west_sprites);
 goblin_attack_west_scene.y = 100;
 goblin_attack_west_scene.x = 80;
+
+// Can be lazy and just flip sprites but clever people will notice weapon hands switching from left to right
+var goblin_attack_east_scene = AnimatedScene(buffer, 65, 64, goblin_attack_west_sprites);
+goblin_attack_east_scene.y = 100;
+goblin_attack_east_scene.x = 100;
+goblin_attack_east_scene.invert_h = true;
+
+// Init static image - would be backgrounds, non-interactive items.
+var cauldron_scene = new Scene(buffer, 32, 32);
+cauldron_scene.sprites.push(cauldron_sprite);
