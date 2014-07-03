@@ -22,17 +22,17 @@ require(requires, function(Game, Scene, ManualSpritesheet) {
   // to make them easier to manage (i.e., if an enemy moves)
   var player_scene = new Scene([0, 0], [32, 32]);
   player_scene.addScene([0, 0], [32, 32], player_sprites.sprites.player5);
-  player_scene.sprites.push(shadow_sprites.sprites.shadow0); // scene background sprites; inner-scenes should draw on top of this
+  // player_scene.sprites.push(shadow_sprites.sprites.shadow0); // scene background sprites; inner-scenes should draw on top of this
 
   var icon_scene = new Scene([16, 16], [16, 16]);
-  icon_scene.sprites.push(icon_sprites.sprites.icon6);
   //Animate icon to "bounce"
   icon_scene.update = function() {
-    if(this.y == 16) this.y = 14;
-    else this.y = 16;
+    if(this.hidden) this.show();
+    else this.hide();
 
     this.updateInnerScenes();
   }
+  icon_scene.sprites.push(icon_sprites.sprites.icon6);
   player_scene.addExistingScene(icon_scene);
 
   // Animate shadow background
@@ -45,7 +45,10 @@ require(requires, function(Game, Scene, ManualSpritesheet) {
   //   this.updateInnerScenes();
   // }
 
-  var g = new Game('game_canvas', 2); // 2 fps since not much is animated in this one
+  var undefined_scene = new Scene([0,0], [32,32]);
+  undefined_scene.sprites.push(shadow_sprites.sprites.shadow0);
+
+  var g = new Game('game_canvas', 2, [10,10], undefined_scene); // 2 fps since not much is animated in this one
   g.addStaticScene(player_scene);
   g.start();
 });

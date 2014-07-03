@@ -38,11 +38,13 @@ define(function() {
       this.updateInnerScenes();
     };
 
-    this.draw = function() {
+    this.draw = function(grid_dims) {
       if(this.hidden) return this;
 
       // Draw sprites first
       for(var i = 0; i < this.sprites.length; i++) {
+        var x = this.x * grid_dims[0];
+        var y = this.y * grid_dims[1];
         var sp = this.sprites[i];
         this.ctx.save();
         var vert = 1;
@@ -50,13 +52,13 @@ define(function() {
         if(this.invert_h) vert = -1;
         if(this.invert_v) horiz = -1;
         this.ctx.scale(horiz, vert);
-        this.ctx.drawImage(sp.img, sp.x, sp.y, sp.w, sp.h, this.x, this.y, sp.sw, sp.sh);
+        this.ctx.drawImage(sp.img, sp.x, sp.y, sp.w, sp.h, x, y, sp.sw, sp.sh);
         this.ctx.restore();
       }
 
       // Then draw inner-scenes
       for(var i = 0; i < this.scenes.length; i++) {
-        this.scenes[i].draw();
+        this.scenes[i].draw([1,1]); // subscenes will use the parent scene's dims
       }
     };
 
@@ -91,6 +93,17 @@ define(function() {
 
       if(this.y > this.canvas.height) this.y = this.canvas.height;
       else if(this.y < 0) this.y = 0;
+    };
+
+    // Copies/clones this instance to a new instance, including functions
+    this.copy = function() {
+      var o = {};
+      var keys = Object.keys(this);
+      for(var i=0; i < keys.length; i++) {
+        var k = keys[i];
+        o[k] = this[k];
+      }
+      return o;
     };
   };
 
