@@ -5,8 +5,8 @@
 var ___game_sprite_promises = [];
 var __game;
 
-function Game() {
-  this.fps = 10; // allows for locking framerate since ~60fps isn't always what you want. Or ever...
+function Game(fps) {
+  this.fps = fps; // allows for locking framerate since ~60fps isn't always what you want. Or ever...
   this.static_scenes = [];
   this.animated_scenes = [];
 
@@ -34,21 +34,16 @@ function Game() {
 
       var screen = document.getElementById('canvas_id');
 
+      var merged_scenes = __game.static_scenes.concat(__game.animated_scenes);
+
       for(var i=0; i < __game.static_scenes.length; i++) {
-        __game.static_scenes[i].update();
-      }
-      for(var i=0; i < __game.animated_scenes.length; i++) {
-        __game.animated_scenes[i].update();
+        merged_scenes[i].update();
       }
 
       __game.buffer_ctx.clearRect(0,0,__game.buffer.width,__game.buffer.height);
 
-      // static scenes should be drawn first
       for(var i=0; i < __game.static_scenes.length; i++) {
-        __game.static_scenes[i].draw();
-      }
-      for(var i=0; i < __game.animated_scenes.length; i++) {
-        __game.animated_scenes[i].draw();
+        merged_scenes[i].draw();
       }
 
       screen.parentNode.replaceChild(__game.buffer, screen);
@@ -67,20 +62,32 @@ function Game() {
 }
 
 // Manages assets on a single layer; i.e., background elements, player, individual enemies, and collision between scenes
-function Scene(width, height) {
-  this.w = width;
-  this.h = height;
-  this.x = 0;
-  this.y = 0;
+function Scene(pos, dims) {
+  this.w = dims[0];
+  this.h = dims[1];
+  this.x = pos[0];
+  this.y = pos[1];
   this.hidden = false;
   this.invert_h = false;
   this.invert_v = false;
   this.sprites = [];
+  this.scenes = [];
 
   this.setCanvas = function(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
-  }
+
+    for(var i=0; i < this.scenes.length; i++) {
+      this.scenes[i].setCanvas(canvas);
+    }
+  };
+
+  this.addScene = function(pos, dims, sprite) {
+    var inner_scene = new Scene([this.x + pos[0], this.y + pos[1]], dims);
+    inner_scene.sprites.push(sprite);
+    this.scenes.push(inner_scene);
+    return inner_scene;
+  };
 
   this.update = function() {
     // actions to take just before each draw frame
@@ -88,7 +95,8 @@ function Scene(width, height) {
 
   this.draw = function() {
     if(this.hidden) return this;
-    // write sprites and such to their appropriate locations on this.ctx
+
+    // Draw sprites first
     for(var i = 0; i < this.sprites.length; i++) {
       var sp = this.sprites[i];
       this.ctx.save();
@@ -99,6 +107,11 @@ function Scene(width, height) {
       this.ctx.scale(horiz, vert);
       this.ctx.drawImage(sp.img, sp.x, sp.y, sp.w, sp.h, this.x, this.y, sp.sw, sp.sh);
       this.ctx.restore();
+    }
+
+    // Then draw inner-scenes
+    for(var i = 0; i < this.scenes.length; i++) {
+      this.scenes[i].draw();
     }
   };
 
@@ -114,14 +127,21 @@ function Scene(width, height) {
   this.move = function(x, y=undefined) {
     if(x == undefined) x = this.x;
     else this.x += x;
-    if(this.x > this.canvas.width) this.x = this.canvas.width;
-    else if(this.x < 0) this.x = 0;
 
     if(y == undefined) y = this.y;
     else this.y += y;
+
+    // this.checkBounds(); // enable if you want to keep drawn elements within the bounds of the canvas
+  };
+
+  // Ensures drawn elements stay on the canvas - not always what you want...
+  this.checkBounds = function() {
+    if(this.x > this.canvas.width) this.x = this.canvas.width;
+    else if(this.x < 0) this.x = 0;
+
     if(this.y > this.canvas.height) this.y = this.canvas.height;
     else if(this.y < 0) this.y = 0;
-  };
+  }
 }
 
 // Similar to a normal scene but animates through the sprite array instead of rendering all of them at once
@@ -147,7 +167,7 @@ function AnimatedScene(width, height, sprites, callback) {
         if(callback != undefined) callback();
       }
     }
-    
+
     this.afterUpdate();
   };
 
@@ -277,5 +297,24 @@ function ManualSpritesheet(filename) {
       deferred.resolve();
     }
     return deferred.promise;
+  };
+
+  // helper functions
+  this.buildHorizontal = function(name, start_cell_x, start_cell_y, to_x, w, h) {
+    start_cell_x--; start_cell_y--;
+    for(var i=0; i < to_x; i++) {
+      var x = start_cell_x * w + (w * i);
+      var y = start_cell_y * h;
+      this.markSprite(name + i, x, y, w, h);
+    }
+  };
+
+  this.buildVertical = function(name, start_cell_x, start_cell_y, to_y, w, h) {
+    start_cell_x--; start_cell_y--;
+    for(var i=0; i < to_y; i++) {
+      var x = start_cell_x * w;
+      var y = start_cell_y * h + (h * i);
+      this.markSprite(name + i, x, y, w, h);
+    }
   };
 }
