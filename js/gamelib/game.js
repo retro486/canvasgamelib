@@ -1,8 +1,7 @@
-// Temporary globals
-var ___game_sprite_promises = [];
-var __game;
-
 define(['q'], function(Q) {
+  var ___game_sprite_promises = [];
+  var __game;
+
   var Game = function(canvas_id, fps) {
     this.canvas_id = canvas_id;
     this.fps = fps; // allows for locking framerate since ~60fps isn't always what you want. Or ever...
