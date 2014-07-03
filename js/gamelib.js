@@ -86,11 +86,18 @@ function Scene(pos, dims) {
     var inner_scene = new Scene([this.x + pos[0], this.y + pos[1]], dims);
     inner_scene.sprites.push(sprite);
     this.scenes.push(inner_scene);
-    return inner_scene;
   };
+
+  this.addExistingScene = function(scene) {
+    scene.x += this.x;
+    scene.y += this.y;
+    this.scenes.push(scene);
+  }
 
   this.update = function() {
     // actions to take just before each draw frame
+    // DON'T FORGET TO INCLUDE A CALL TO this.updateInnerScenes()
+    this.updateInnerScenes();
   };
 
   this.draw = function() {
@@ -113,6 +120,11 @@ function Scene(pos, dims) {
     for(var i = 0; i < this.scenes.length; i++) {
       this.scenes[i].draw();
     }
+  };
+
+  this.updateInnerScenes = function() {
+    for(var i=0; i < this.scenes.length; i++)
+      this.scenes[i].update();
   };
 
   this.hide = function() {

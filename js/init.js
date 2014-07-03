@@ -15,10 +15,28 @@ icon_sprites.buildHorizontal('icon', 1, 47, 16, 16, 16); // row number must be i
 // to make them easier to manage (i.e., if an enemy moves)
 var player_scene = new Scene([0, 0], [32, 32]);
 player_scene.addScene([0, 0], [32, 32], player_sprites.sprites.player5);
-var icon_scene = player_scene.addScene([16, 16], [16, 16], icon_sprites.sprites.icon6);
 player_scene.sprites.push(shadow_sprites.sprites.shadow0); // scene background sprites; inner-scenes should draw on top of this
 
-console.debug(player_scene);
+var icon_scene = new Scene([16, 16], [16, 16]);
+icon_scene.sprites.push(icon_sprites.sprites.icon6);
+//Animate icon to "bounce"
+icon_scene.update = function() {
+  if(this.y == 16) this.y = 14;
+  else this.y = 16;
+
+  this.updateInnerScenes();
+}
+player_scene.addExistingScene(icon_scene);
+
+// Animate shadow background
+// player_scene.shadow_level = 0;
+// player_scene.update = function() {
+//   this.shadow_level++;
+//   if(this.shadow_level > 7) this.shadow_level = 0;
+//   this.sprites = [shadow_sprites.sprites['shadow'+this.shadow_level]];
+//
+//   this.updateInnerScenes();
+// }
 
 var game = new Game(2); // 2 fps since not much is animated in this one
 game.addStaticScene(player_scene);
