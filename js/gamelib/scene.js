@@ -38,13 +38,13 @@ define(function() {
       this.updateInnerScenes();
     };
 
-    this.draw = function(grid_dims) {
+    this.draw = function(start_pos, grid_dims) {
       if(this.hidden) return this;
 
       // Draw sprites first
       for(var i = 0; i < this.sprites.length; i++) {
-        var x = this.x * grid_dims[0];
-        var y = this.y * grid_dims[1];
+        var x = start_pos[0] + (this.x * grid_dims[0]);
+        var y = start_pos[1] + (this.y * grid_dims[1]);
         var sp = this.sprites[i];
         this.ctx.save();
         var vert = 1;
@@ -58,7 +58,7 @@ define(function() {
 
       // Then draw inner-scenes
       for(var i = 0; i < this.scenes.length; i++) {
-        this.scenes[i].draw([1,1]); // subscenes will use the parent scene's dims
+        this.scenes[i].draw([this.x * grid_dims[0], this.y * grid_dims[1]],[1,1]); // subscenes will use the parent scene's dims
       }
     };
 
@@ -86,6 +86,10 @@ define(function() {
       // this.checkBounds(); // enable if you want to keep drawn elements within the bounds of the canvas
     };
 
+    this.moveTo = function(pos) {
+      this.x = pos[0]; this.y = pos[1];
+    };
+    
     // Ensures drawn elements stay on the canvas - not always what you want...
     this.checkBounds = function() {
       if(this.x > this.canvas.width) this.x = this.canvas.width;

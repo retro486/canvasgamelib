@@ -48,7 +48,6 @@ define(['q'], function(Q) {
         var screen = document.getElementById(__game.canvas_id);
 
         var merged_scenes = __game.grid.concat(__game.static_scenes.concat(__game.animated_scenes));
-        // var merged_scenes = __game.grid;
 
         for(var i=0; i < merged_scenes.length; i++) {
           merged_scenes[i].update();
@@ -57,7 +56,7 @@ define(['q'], function(Q) {
         __game.buffer_ctx.clearRect(0,0,__game.buffer.width,__game.buffer.height);
 
         for(var i=0; i < merged_scenes.length; i++) {
-          merged_scenes[i].draw([__game.undefined_scene.w, __game.undefined_scene.h]);
+          merged_scenes[i].draw([0,0],[__game.undefined_scene.w, __game.undefined_scene.h]);
         }
 
         screen.parentNode.replaceChild(__game.buffer, screen);

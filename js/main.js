@@ -22,7 +22,6 @@ require(requires, function(Game, Scene, ManualSpritesheet) {
   // to make them easier to manage (i.e., if an enemy moves)
   var player_scene = new Scene([0, 0], [32, 32]);
   player_scene.addScene([0, 0], [32, 32], player_sprites.sprites.player5);
-  // player_scene.sprites.push(shadow_sprites.sprites.shadow0); // scene background sprites; inner-scenes should draw on top of this
 
   var icon_scene = new Scene([16, 16], [16, 16]);
   //Animate icon to "bounce"
@@ -34,6 +33,13 @@ require(requires, function(Game, Scene, ManualSpritesheet) {
   }
   icon_scene.sprites.push(icon_sprites.sprites.icon6);
   player_scene.addExistingScene(icon_scene);
+
+  var enemy_sprites = new ManualSpritesheet('images/fantasy-tileset.png');
+  enemy_sprites.buildHorizontal('enemy', 1, 22, 8, 32, 32);
+
+  var enemy_scene = new Scene([2,0], [32,32]);
+  enemy_scene.addScene([0,0],[32,32], enemy_sprites.sprites.enemy0);
+  // enemy_scene.sprites.push(enemy_sprites.sprites.enemy0);
 
   // Animate shadow background
   // player_scene.shadow_level = 0;
@@ -50,5 +56,6 @@ require(requires, function(Game, Scene, ManualSpritesheet) {
 
   var g = new Game('game_canvas', 2, [10,10], undefined_scene); // 2 fps since not much is animated in this one
   g.addStaticScene(player_scene);
+  g.addStaticScene(enemy_scene);
   g.start();
 });
