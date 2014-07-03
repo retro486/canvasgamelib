@@ -45,7 +45,7 @@ require(requires, function(Game, Scene, ManualSpritesheet) {
   //   this.updateInnerScenes();
   // }
 
-  var g = new Game(2); // 2 fps since not much is animated in this one
+  var g = new Game('game_canvas', 2); // 2 fps since not much is animated in this one
   g.addStaticScene(player_scene);
   g.start();
 });

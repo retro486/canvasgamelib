@@ -3,16 +3,18 @@ var ___game_sprite_promises = [];
 var __game;
 
 define(['q'], function(Q) {
-  var Game = function(fps) {
+  var Game = function(canvas_id, fps) {
+    this.canvas_id = canvas_id;
     this.fps = fps; // allows for locking framerate since ~60fps isn't always what you want. Or ever...
     this.static_scenes = [];
     this.animated_scenes = [];
 
+    var canvas = document.getElementById(canvas_id);
     this.buffer = document.createElement('canvas');
     this.buffer_ctx = this.buffer.getContext('2d');
-    this.buffer.width = 640;
-    this.buffer.height = 480;
-    this.buffer.id = 'canvas_id';
+    this.buffer.width = canvas.width;
+    this.buffer.height = canvas.height;
+    this.buffer.id = canvas_id;
 
     this.addStaticScene = function(scene) {
       scene.setCanvas(this.buffer);
@@ -30,7 +32,7 @@ define(['q'], function(Q) {
       setTimeout(function() {
         window.requestAnimationFrame(__game.anim);
 
-        var screen = document.getElementById('canvas_id');
+        var screen = document.getElementById(__game.canvas_id);
 
         var merged_scenes = __game.static_scenes.concat(__game.animated_scenes);
 
